@@ -37,6 +37,12 @@
 
     .muted{color:var(--muted);font-size:13px}
     .small{font-size:12px;color:var(--muted)}
+
+    /* responsive */
+    @media (max-width:900px){
+      .status-card{grid-column:span 12}
+      .main-card{grid-column:span 12}
+    }
   </style>
 </head>
 <body>
@@ -98,7 +104,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // ---- UI elements ----
+    // UI Elements
     const connEl = document.getElementById('conn');
     const mainCountEl = document.getElementById('mainCount');
     const corridorCountEl = document.getElementById('corridorCount');
@@ -110,17 +116,7 @@
     const corrState = document.getElementById('corrState');
     const ambState = document.getElementById('ambState');
 
-    const vehiclesChart = new Chart(document.createElement('canvas').getContext('2d'), {
-      type:'line',
-      data:{labels:[], datasets:[
-        {label:'Main lane', data:[], borderColor:'#60a5fa', fill:false, tension:0.3},
-        {label:'Green corridor', data:[], borderColor:'#34d399', fill:false, tension:0.3},
-        {label:'Ambulance', data:[], borderColor:'#f97316', fill:false, tension:0.3}
-      ]},
-      options:{responsive:true, plugins:{legend:{labels:{color:'#c7d2fe'}}}, scales:{x:{ticks:{color:'#9aa7bf'}}, y:{ticks:{color:'#9aa7bf'}}}}
-    });
-
-    // ---- Helpers ----
+    // Helper to set LED color
     function setLed(el,color){
       el.classList.remove('green','red','yellow');
       if(color==='green') el.classList.add('green');
@@ -128,36 +124,23 @@
       if(color==='yellow') el.classList.add('yellow');
     }
 
+    // Update dashboard UI
     function updateUI(data){
-      // تحديث counts
       mainCountEl.textContent = data.main || 0;
       corridorCountEl.textContent = data.corridor || 0;
       ambCountEl.textContent = data.amb || 0;
 
-      // LEDs و status
-      if(data.main>8){ setLed(mainLed,'red'); mainState.textContent='CONGESTED'; }
-      else{ setLed(mainLed,'green'); mainState.textContent='OK'; }
+      setLed(mainLed, data.main>8?'red':'green');
+      mainState.textContent = data.main>8?'CONGESTED':'OK';
 
-      if(data.corridor_open){ setLed(corridorLed,'green'); corrState.textContent='OPEN'; }
-      else{ setLed(corridorLed,'red'); corrState.textContent='CLOSED'; }
+      setLed(corridorLed, data.corridor_open?'green':'red');
+      corrState.textContent = data.corridor_open?'OPEN':'CLOSED';
 
-      if(data.amb>0){ setLed(ambLed,'green'); ambState.textContent='ACTIVE'; }
-      else{ setLed(ambLed,'green'); ambState.textContent='Idle'; }
-
-      // Chart (اختياري)
-      const label = new Date().toLocaleTimeString();
-      vehiclesChart.data.labels.push(label);
-      vehiclesChart.data.datasets[0].data.push(data.main || 0);
-      vehiclesChart.data.datasets[1].data.push(data.corridor || 0);
-      vehiclesChart.data.datasets[2].data.push(data.amb || 0);
-      if(vehiclesChart.data.labels.length>30){ 
-        vehiclesChart.data.labels.shift(); 
-        vehiclesChart.data.datasets.forEach(ds=>ds.data.shift()); 
-      }
-      vehiclesChart.update();
+      setLed(ambLed, data.amb>0?'green':'green');
+      ambState.textContent = data.amb>0?'ACTIVE':'Idle';
     }
 
-    // ---- Fetch data from Flask every 1 second ----
+    // Fetch data from Flask every 1 second
     const FLASK_URL = "https://janaali.pythonanywhere.com/data";
 
     async function fetchFlaskData(){
@@ -174,11 +157,9 @@
       }
     }
 
-    setInterval(fetchFlaskData, 1000); // كل ثانية
+    setInterval(fetchFlaskData, 1000);
     window.onload = fetchFlaskData;
-
   </script>
 </body>
 </html>
-
 
