@@ -90,23 +90,24 @@ const vehiclesChart = new Chart(ctx, {
   data: {
     labels: [],
     datasets: [
-      { label: "Main Lane", data: [], borderColor:"#60a5fa", fill:false, tension:0.3},
-      { label: "Corridor Lane", data: [], borderColor:"#34d399", fill:false, tension:0.3},
-      { label: "Ambulance Lane", data: [], borderColor:"#f97316", fill:false, tension:0.3}
+      { label: "Road 1", data: [], borderColor:"#60a5fa", fill:false, tension:0.3},
+      { label: "Road 2", data: [], borderColor:"#34d399", fill:false, tension:0.3},
+      { label: "Road 3", data: [], borderColor:"#f97316", fill:false, tension:0.3}
     ]
   },
   options: { responsive:true, plugins:{legend:{labels:{color:'#c7d2fe'}}}, scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}} }
 });
 
 function updateUI(data) {
-  // Card 1: total cars
   const totalCars = data.road_1 + data.road_2 + data.road_3;
+
+  // Card 1: total cars
   mainCountEl.textContent = totalCars;
 
-  // Card 2: Emergency
+  // Card 2: Emergency vehicle
   corridorCountEl.textContent = data.emergency ? "YES" : "NO";
 
-  // Card 3: Congestion
+  // Card 3: Congestion status
   if (totalCars > 10) {
     ambCountEl.textContent = "HIGHLY CONGESTED";
     ambCountEl.style.color = "#ef4444";
@@ -118,7 +119,7 @@ function updateUI(data) {
     ambCountEl.style.color = "#22c55e";
   }
 
-  // Update chart
+  // Update chart (per road)
   const t = new Date().toLocaleTimeString();
   vehiclesChart.data.labels.push(t);
   vehiclesChart.data.datasets[0].data.push(data.road_1);
@@ -137,12 +138,7 @@ async function fetchFlaskData() {
     const resp = await fetch(FLASK_URL, { cache: "no-store" });
     const data = await resp.json();
 
-    const isReal =
-      data.road_1 !== undefined &&
-      data.road_2 !== undefined &&
-      data.road_3 !== undefined;
-
-    if (!isReal) {
+    if (data.road_1 === undefined || data.road_2 === undefined || data.road_3 === undefined || data.emergency === undefined) {
       connEl.textContent = "DISCONNECTED";
       connEl.style.color = "#f87171";
       return;
