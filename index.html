@@ -294,5 +294,26 @@
     try{ connectWS(); }catch(e){ appendLog('Initial WS connect failed — using mock'); useMock=true; }
 
   </script>
+  <pre id="output">Loading data...</pre>
+
+<script>
+  const flaskURL = "https://janaali.pythonanywhere.com/data";
+
+  async function getData() {
+    try {
+      const response = await fetch(flaskURL);
+      const data = await response.json();
+      document.getElementById("output").innerText =
+        JSON.stringify(data, null, 2);
+    } catch (error) {
+      document.getElementById("output").innerText =
+        "Error loading data";
+    }
+  }
+
+  window.onload = getData;
+</script>
+
 </body>
 </html>
+
