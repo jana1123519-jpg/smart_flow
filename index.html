@@ -37,19 +37,6 @@
 
     .muted{color:var(--muted);font-size:13px}
     .small{font-size:12px;color:var(--muted)}
-
-    .controls{display:flex;gap:8px;align-items:center}
-    button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer}
-    .btn-primary{background:linear-gradient(90deg,#1f9a73,#22c55e);border:none;color:#04111a;font-weight:600}
-
-    .chart-wrap{height:280px}
-    footer{margin-top:22px;color:var(--muted);font-size:13px}
-
-    /* responsive */
-    @media (max-width:900px){
-      .status-card{grid-column:span 12}
-      .main-card{grid-column:span 12}
-    }
   </style>
 </head>
 <body>
@@ -76,7 +63,6 @@
           </div>
           <div style="text-align:right">
             <div><span id="mainLed" class="led green"></span><span id="mainState">OK</span></div>
-            <div class="small muted" style="margin-top:8px">Threshold: <strong>8</strong> vehicles</div>
           </div>
         </div>
       </div>
@@ -89,8 +75,7 @@
             <div class="muted">Vehicles in corridor</div>
           </div>
           <div style="text-align:right">
-            <div><span id="corridorLed" class="led green"></span><span id="corrState">Closed</span></div>
-            <div class="small muted" style="margin-top:8px">Auto-enabled when main congested</div>
+            <div><span id="corridorLed" class="led red"></span><span id="corrState">CLOSED</span></div>
           </div>
         </div>
       </div>
@@ -104,71 +89,16 @@
           </div>
           <div style="text-align:right">
             <div><span id="ambLed" class="led green"></span><span id="ambState">Idle</span></div>
-            <div class="small muted" style="margin-top:8px">Unauthorized entries flagged</div>
           </div>
         </div>
       </div>
-
-      <div class="card main-card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <h3 style="margin:0">System Overview</h3>
-          <div class="controls">
-            <button id="mockToggle">Use Mock Data</button>
-            <button class="btn-primary" id="reconnect">Reconnect</button>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:12px;margin-top:12px">
-          <div style="flex:2">
-            <div class="chart-wrap card" id="chartBox">
-              <canvas id="vehiclesChart"></canvas>
-            </div>
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:12px">
-            <div class="card" style="padding:10px">
-              <div class="small muted">End-to-end Latency</div>
-              <div style="font-weight:700;font-size:20px" id="latency">-</div>
-              <div class="small muted">% frames > 2s: <span id="over2">-</span></div>
-            </div>
-
-            <div class="card" style="padding:10px">
-              <div class="small muted">Estimated CO₂ (kg/h)</div>
-              <div style="font-weight:700;font-size:20px" id="co2">-</div>
-              <div class="small muted">Baseline vs Current shown on chart</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="card full">
-        <h3 style="margin:0 0 8px 0">Recommendations & Activity Log</h3>
-        <div style="display:flex;gap:12px">
-          <div style="flex:1">
-            <div id="recommendations" class="muted small">No recommendations yet.</div>
-          </div>
-          <div style="flex:1">
-            <div style="height:120px;overflow:auto;background:var(--glass-2);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02)" id="log"></div>
-          </div>
-        </div>
-      </div>
-
     </div>
-
-    <footer>
-      Prototype Dashboard • show live status for ambulance-priority routing • Connects to backend via WebSocket at <code>ws://localhost:5000/status</code> (configurable)
-    </footer>
   </div>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Configuration
-    const WS_URL = 'ws://localhost:5000/status'; // backend WebSocket endpoint (if available)
-    let useMock = true;
-    let ws;
-
-    // UI elements
+    // ---- UI elements ----
     const connEl = document.getElementById('conn');
     const mainCountEl = document.getElementById('mainCount');
     const corridorCountEl = document.getElementById('corridorCount');
@@ -179,141 +109,76 @@
     const mainState = document.getElementById('mainState');
     const corrState = document.getElementById('corrState');
     const ambState = document.getElementById('ambState');
-    const latencyEl = document.getElementById('latency');
-    const over2El = document.getElementById('over2');
-    const co2El = document.getElementById('co2');
-    const recEl = document.getElementById('recommendations');
-    const logEl = document.getElementById('log');
 
-    // Chart
-    const ctx = document.getElementById('vehiclesChart').getContext('2d');
-    const vehiclesChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          {label:'Main lane', data:[], borderColor:'#60a5fa', fill:false, tension:0.3},
-          {label:'Green corridor', data:[], borderColor:'#34d399', fill:false, tension:0.3},
-          {label:'Ambulance', data:[], borderColor:'#f97316', fill:false, tension:0.3}
-        ]
-      },
-      options:{responsive:true,plugins:{legend:{labels:{color:'#c7d2fe'}}},scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}}}
+    const vehiclesChart = new Chart(document.createElement('canvas').getContext('2d'), {
+      type:'line',
+      data:{labels:[], datasets:[
+        {label:'Main lane', data:[], borderColor:'#60a5fa', fill:false, tension:0.3},
+        {label:'Green corridor', data:[], borderColor:'#34d399', fill:false, tension:0.3},
+        {label:'Ambulance', data:[], borderColor:'#f97316', fill:false, tension:0.3}
+      ]},
+      options:{responsive:true, plugins:{legend:{labels:{color:'#c7d2fe'}}}, scales:{x:{ticks:{color:'#9aa7bf'}}, y:{ticks:{color:'#9aa7bf'}}}}
     });
 
-    // Helpers
-    function setLed(el, color){
+    // ---- Helpers ----
+    function setLed(el,color){
       el.classList.remove('green','red','yellow');
       if(color==='green') el.classList.add('green');
       if(color==='red') el.classList.add('red');
       if(color==='yellow') el.classList.add('yellow');
     }
 
-    function appendLog(msg){
-      const t = new Date().toLocaleTimeString();
-      logEl.innerHTML = `<div>[${t}] ${msg}</div>` + logEl.innerHTML;
-    }
-
     function updateUI(data){
-      // expected data schema: {main: int, corridor:int, amb:int, amb_violation:bool, latency:float, over2pct:float, co2:float, corridor_open:bool}
-      mainCountEl.textContent = data.main;
-      corridorCountEl.textContent = data.corridor;
-      ambCountEl.textContent = data.amb;
+      // تحديث counts
+      mainCountEl.textContent = data.main || 0;
+      corridorCountEl.textContent = data.corridor || 0;
+      ambCountEl.textContent = data.amb || 0;
 
-      // LEDs and status
-      if(data.main > 8){ setLed(mainLed,'red'); mainState.textContent='CONGESTED'; }
-      else { setLed(mainLed,'green'); mainState.textContent='OK'; }
+      // LEDs و status
+      if(data.main>8){ setLed(mainLed,'red'); mainState.textContent='CONGESTED'; }
+      else{ setLed(mainLed,'green'); mainState.textContent='OK'; }
 
-      if(data.corridor_open){ setLed(corridorLed,'green'); corrState.textContent='OPEN'; } else { setLed(corridorLed,'red'); corrState.textContent='CLOSED'; }
+      if(data.corridor_open){ setLed(corridorLed,'green'); corrState.textContent='OPEN'; }
+      else{ setLed(corridorLed,'red'); corrState.textContent='CLOSED'; }
 
-      if(data.amb > 0){ setLed(ambLed,'green'); ambState.textContent='ACTIVE'; } else { setLed(ambLed,'green'); ambState.textContent='Idle'; }
+      if(data.amb>0){ setLed(ambLed,'green'); ambState.textContent='ACTIVE'; }
+      else{ setLed(ambLed,'green'); ambState.textContent='Idle'; }
 
-      latencyEl.textContent = data.latency ? (data.latency.toFixed(2)+' s') : '-';
-      over2El.textContent = data.over2pct !== undefined ? (data.over2pct+' %') : '-';
-      co2El.textContent = data.co2 !== undefined ? data.co2.toFixed(2) : '-';
-
-      // Chart update
+      // Chart (اختياري)
       const label = new Date().toLocaleTimeString();
       vehiclesChart.data.labels.push(label);
-      vehiclesChart.data.datasets[0].data.push(data.main);
-      vehiclesChart.data.datasets[1].data.push(data.corridor);
-      vehiclesChart.data.datasets[2].data.push(data.amb);
-      if(vehiclesChart.data.labels.length>30){ vehiclesChart.data.labels.shift(); vehiclesChart.data.datasets.forEach(ds=>ds.data.shift()); }
+      vehiclesChart.data.datasets[0].data.push(data.main || 0);
+      vehiclesChart.data.datasets[1].data.push(data.corridor || 0);
+      vehiclesChart.data.datasets[2].data.push(data.amb || 0);
+      if(vehiclesChart.data.labels.length>30){ 
+        vehiclesChart.data.labels.shift(); 
+        vehiclesChart.data.datasets.forEach(ds=>ds.data.shift()); 
+      }
       vehiclesChart.update();
+    }
 
-      // Recommendation
-      if(data.main > 8){
-        recEl.textContent = 'CONGESTION detected: recommend using Green Corridor. ETA improvement ≈ 25%';
-      } else {
-        recEl.textContent = 'Traffic normal: continue on main lane.';
+    // ---- Fetch data from Flask every 1 second ----
+    const FLASK_URL = "https://janaali.pythonanywhere.com/data";
+
+    async function fetchFlaskData(){
+      try{
+        const resp = await fetch(FLASK_URL);
+        const data = await resp.json();
+        updateUI(data);
+        connEl.textContent = "CONNECTED";
+        connEl.style.color = "#86efac";
+      }catch(err){
+        connEl.textContent = "DISCONNECTED";
+        connEl.style.color = "#7dd3fc";
+        console.error("Error fetching Flask data:", err);
       }
-
-      if(data.amb_violation){ appendLog('Unauthorized vehicle in emergency lane — violation flagged'); }
     }
 
-    // WebSocket connection
-    function connectWS(){
-      if(ws) try { ws.close(); } catch(e){}
-      ws = new WebSocket(WS_URL);
-      ws.onopen = ()=>{ connEl.textContent='CONNECTED'; connEl.style.color='#86efac'; appendLog('WebSocket connected'); };
-      ws.onclose = ()=>{ connEl.textContent='DISCONNECTED'; connEl.style.color='#7dd3fc'; appendLog('WebSocket closed'); };
-      ws.onerror = (e)=>{ appendLog('WebSocket error'); };
-      ws.onmessage = (evt)=>{
-        try{
-          const data = JSON.parse(evt.data);
-          updateUI(data);
-        }catch(e){ appendLog('Bad message: '+evt.data); }
-      };
-    }
-
-    document.getElementById('mockToggle').addEventListener('click', ()=>{ useMock = !useMock; document.getElementById('mockToggle').textContent = useMock? 'Use Mock Data':'Use Mock Data'; appendLog('Mock data '+(useMock?'enabled':'disabled')); });
-    document.getElementById('reconnect').addEventListener('click', ()=>{ connectWS(); appendLog('Reconnect requested'); });
-
-    // Mock data generator (runs when useMock=true or when WS not available)
-    function genMock(){
-      const main = Math.max(0, Math.round(10 + 6*Math.sin(Date.now()/5000) + (Math.random()*4-2)) );
-      const corridor = Math.max(0, Math.round(Math.random()*3));
-      const amb = Math.random()<0.05?1:0;
-      const amb_violation = Math.random()<0.02;
-      const latency = 0.9 + Math.random()*0.6; // seconds
-      const over2pct = Math.random()<0.02?3:0.8;
-      const co2 = main * 1.0 * 2.31; // simple model: N * r(1 L/h) * EF
-      const corridor_open = main>8;
-      return {main,corridor,amb,amb_violation,latency,over2pct,co2,corridor_open};
-    }
-
-    // fallback loop
-    setInterval(()=>{
-      if(useMock){ const d = genMock(); updateUI(d); }
-      else {
-        // if not using mock and WS not connected, try reconnect
-        if(!ws || ws.readyState!==WebSocket.OPEN){ try{ connectWS(); }catch(e){} }
-      }
-    },1000);
-
-    // attempt initial WS connect
-    try{ connectWS(); }catch(e){ appendLog('Initial WS connect failed — using mock'); useMock=true; }
+    setInterval(fetchFlaskData, 1000); // كل ثانية
+    window.onload = fetchFlaskData;
 
   </script>
-  <pre id="output">Loading data...</pre>
-
-<script>
-  const flaskURL = "https://janaali.pythonanywhere.com/data";
-
-  async function getData() {
-    try {
-      const response = await fetch(flaskURL);
-      const data = await response.json();
-      document.getElementById("output").innerText =
-        JSON.stringify(data, null, 2);
-    } catch (error) {
-      document.getElementById("output").innerText =
-        "Error loading data";
-    }
-  }
-
-  window.onload = getData;
-</script>
-
 </body>
 </html>
+
 
