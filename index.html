@@ -92,60 +92,54 @@
 <script>
 const FLASK_URL = "https://janaali.pythonanywhere.com/data";
 
+// Card elements
+const mainCountEl = document.getElementById("mainCount"); // first card
+const corridorCountEl = document.getElementById("corridorCount"); // second card
+const ambCountEl = document.getElementById("ambCount"); // third card
 const connEl = document.getElementById("conn");
-const carsEl = document.getElementById("carsDetected");
-const emergencyEl = document.getElementById("emergencyStatus");
-const congestionEl = document.getElementById("congestionStatus");
 
-let lastValidData = null;
-
-async function fetchData(){
-  try{
+async function fetchFlaskData() {
+  try {
     const resp = await fetch(FLASK_URL, { cache: "no-store" });
     const data = await resp.json();
 
-    if (!data || data.road_1 === undefined) return;
+    if (!data) return;
 
-    const totalCars = data.road_1 + data.road_2 + data.road_3;
-
-    // Reject fake/default data
-    if (totalCars === 0 && !data.emergency) {
-      connEl.textContent = "DISCONNECTED";
-      connEl.style.color = "#ef4444";
-      return;
-    }
-
-    // REAL DATA
     connEl.textContent = "CONNECTED";
-    connEl.style.color = "#22c55e";
+    connEl.style.color = "#86efac";
 
-    carsEl.textContent = totalCars;
+    // Card 1: Total cars detected (sum of roads)
+    const totalCars = data.road_1 + data.road_2 + data.road_3;
+    mainCountEl.textContent = totalCars;
 
-    emergencyEl.textContent = data.emergency ? "YES" : "NO";
-    emergencyEl.className = "value " + (data.emergency ? "danger" : "normal");
+    // Card 2: Emergency vehicle
+    corridorCountEl.textContent = data.emergency ? "YES" : "NO";
 
+    // Card 3: Congestion level
     if (totalCars > 10) {
-      congestionEl.textContent = "HIGHLY CONGESTED";
-      congestionEl.className = "value danger";
+      ambCountEl.textContent = "HIGHLY CONGESTED";
+      ambCountEl.style.color = "#ef4444";
     } else if (totalCars > 6) {
-      congestionEl.textContent = "CONGESTED";
-      congestionEl.className = "value warn";
+      ambCountEl.textContent = "CONGESTED";
+      ambCountEl.style.color = "#f59e0b";
     } else {
-      congestionEl.textContent = "NORMAL";
-      congestionEl.className = "value normal";
+      ambCountEl.textContent = "NORMAL";
+      ambCountEl.style.color = "#22c55e";
     }
 
-    lastValidData = data;
-
-  } catch {
+  } catch (err) {
     connEl.textContent = "DISCONNECTED";
-    connEl.style.color = "#ef4444";
+    connEl.style.color = "#7dd3fc";
+    console.error("Error fetching Flask data:", err);
   }
 }
 
-setInterval(fetchData, 1000);
-fetchData();
+// Fetch data every second
+setInterval(fetchFlaskData, 1000);
+fetchFlaskData();
 </script>
+
 
 </body>
 </html>
+
