@@ -49,21 +49,25 @@
 </header>
 
 <div class="grid">
+  <!-- Card 1: Total Vehicles -->
   <div class="card status-card">
-    <div class="lane-title"><h3>Main Lane</h3></div>
+    <div class="lane-title"><h3>Total Vehicles</h3></div>
     <div class="lane-count" id="mainCount">-</div>
   </div>
 
+  <!-- Card 2: Emergency Vehicle -->
   <div class="card status-card">
-    <div class="lane-title"><h3>Corridor Lane</h3></div>
+    <div class="lane-title"><h3>Emergency Vehicle</h3></div>
     <div class="lane-count" id="corridorCount">-</div>
   </div>
 
+  <!-- Card 3: Congestion Level -->
   <div class="card status-card">
-    <div class="lane-title"><h3>Ambulance Lane</h3></div>
+    <div class="lane-title"><h3>Congestion Level</h3></div>
     <div class="lane-count" id="ambCount">-</div>
   </div>
 
+  <!-- Chart -->
   <div class="card main-card">
     <div class="chart-wrap">
       <canvas id="vehiclesChart"></canvas>
@@ -90,9 +94,9 @@ const vehiclesChart = new Chart(ctx, {
   data: {
     labels: [],
     datasets: [
-      { label: "Road 1", data: [], borderColor:"#60a5fa", fill:false, tension:0.3},
-      { label: "Road 2", data: [], borderColor:"#34d399", fill:false, tension:0.3},
-      { label: "Road 3", data: [], borderColor:"#f97316", fill:false, tension:0.3}
+      { label: "Road 1", data: [], borderColor:"#60a5fa", fill:false, tension:0.3 },
+      { label: "Road 2", data: [], borderColor:"#34d399", fill:false, tension:0.3 },
+      { label: "Road 3", data: [], borderColor:"#f97316", fill:false, tension:0.3 }
     ]
   },
   options: { responsive:true, plugins:{legend:{labels:{color:'#c7d2fe'}}}, scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}} }
@@ -101,13 +105,13 @@ const vehiclesChart = new Chart(ctx, {
 function updateUI(data) {
   const totalCars = data.road_1 + data.road_2 + data.road_3;
 
-  // Card 1: total cars
+  // Card 1: Total vehicles
   mainCountEl.textContent = totalCars;
 
   // Card 2: Emergency vehicle
   corridorCountEl.textContent = data.emergency ? "YES" : "NO";
 
-  // Card 3: Congestion status
+  // Card 3: Congestion level
   if (totalCars > 10) {
     ambCountEl.textContent = "HIGHLY CONGESTED";
     ambCountEl.style.color = "#ef4444";
@@ -119,7 +123,7 @@ function updateUI(data) {
     ambCountEl.style.color = "#22c55e";
   }
 
-  // Update chart (per road)
+  // Update chart per road
   const t = new Date().toLocaleTimeString();
   vehiclesChart.data.labels.push(t);
   vehiclesChart.data.datasets[0].data.push(data.road_1);
