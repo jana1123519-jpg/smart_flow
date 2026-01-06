@@ -99,19 +99,23 @@ const vehiclesChart = new Chart(ctx, {
       { label: "Road 3", data: [], borderColor:"#f97316", fill:false, tension:0.3 }
     ]
   },
-  options: { responsive:true, plugins:{legend:{labels:{color:'#c7d2fe'}}}, scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}} }
+  options: { 
+    responsive:true, 
+    plugins:{legend:{labels:{color:'#c7d2fe'}}}, 
+    scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}} 
+  }
 });
 
 function updateUI(data) {
   const totalCars = data.road_1 + data.road_2 + data.road_3;
 
-  // Card 1: Total vehicles
+  // Card 1: total vehicles
   mainCountEl.textContent = totalCars;
 
   // Card 2: Emergency vehicle
   corridorCountEl.textContent = data.emergency ? "YES" : "NO";
 
-  // Card 3: Congestion level
+  // Card 3: Congestion status
   if (totalCars > 10) {
     ambCountEl.textContent = "HIGHLY CONGESTED";
     ambCountEl.style.color = "#ef4444";
@@ -123,7 +127,7 @@ function updateUI(data) {
     ambCountEl.style.color = "#22c55e";
   }
 
-  // Update chart per road
+  // Update chart (per road)
   const t = new Date().toLocaleTimeString();
   vehiclesChart.data.labels.push(t);
   vehiclesChart.data.datasets[0].data.push(data.road_1);
