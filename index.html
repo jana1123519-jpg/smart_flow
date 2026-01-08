@@ -7,159 +7,132 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0f1724; --card:#0b1220; --muted:#9aa7bf; --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b; --glass: rgba(255,255,255,0.03);
-      --soft:#111827; --glass-2: rgba(255,255,255,0.02);
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa7bf;
+      --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
     *{box-sizing:border-box}
     body{margin:0;background:linear-gradient(180deg,#071029 0%, #071827 100%);color:#e6eef8}
     .container{max-width:1200px;margin:28px auto;padding:20px}
     header{display:flex;align-items:center;gap:16px}
-    .brand{display:flex;flex-direction:column}
     h1{margin:0;font-size:20px}
     p.lead{margin:0;color:var(--muted);font-size:13px}
     .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:20px}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+          border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.03)}
     .status-card{grid-column:span 4}
     .main-card{grid-column:span 8}
-    .full{grid-column:1 / -1}
-    .lane-title{display:flex;justify-content:space-between;align-items:center}
     .lane-count{font-size:28px;font-weight:700}
-    .led{width:14px;height:14px;border-radius:50%;display:inline-block;margin-right:8px}
-    .led.green{background:var(--accent)}
-    .led.red{background:var(--danger)}
-    .muted{color:var(--muted);font-size:13px}
     .small{font-size:12px;color:var(--muted)}
-    .chart-wrap{height:280px}
   </style>
 </head>
 
 <body>
 <div class="container">
 <header>
-  <div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(180deg,#0ea5a9,#0284c7);display:flex;align-items:center;justify-content:center;font-weight:700">AI</div>
-  <div class="brand">
+  <div style="width:48px;height:48px;border-radius:10px;
+              background:linear-gradient(180deg,#0ea5a9,#0284c7);
+              display:flex;align-items:center;justify-content:center;font-weight:700">AI</div>
+  <div>
     <h1>Ambulance Priority — Real-time Dashboard</h1>
-    <p class="lead">Live visualization of lane vehicle counts.</p>
+    <p class="lead">Live visualization from AI Traffic System</p>
   </div>
   <div style="margin-left:auto;text-align:right">
-    <div class="small muted">Connection:</div>
+    <div class="small">Connection</div>
     <div id="conn" style="font-weight:700;color:#f87171">DISCONNECTED</div>
   </div>
 </header>
 
 <div class="grid">
-  <!-- Card 1: Total Vehicles -->
   <div class="card status-card">
-    <div class="lane-title"><h3>Total Vehicles</h3></div>
+    <h3>Total Vehicles</h3>
     <div class="lane-count" id="mainCount">-</div>
   </div>
 
-  <!-- Card 2: Emergency Vehicle -->
   <div class="card status-card">
-    <div class="lane-title"><h3>Emergency Vehicle</h3></div>
+    <h3>Ambulance Detected</h3>
     <div class="lane-count" id="corridorCount">-</div>
   </div>
 
-  <!-- Card 3: Congestion Level -->
   <div class="card status-card">
-    <div class="lane-title"><h3>Congestion Level</h3></div>
+    <h3>Traffic Mode</h3>
     <div class="lane-count" id="ambCount">-</div>
   </div>
 
-  <!-- Chart -->
   <div class="card main-card">
-    <div class="chart-wrap">
-      <canvas id="vehiclesChart"></canvas>
-    </div>
+    <canvas id="vehiclesChart"></canvas>
   </div>
 </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const FLASK_URL = "https://janaali.pythonanywhere.com/data";
+const FLASK_URL = "/status";
 
 const connEl = document.getElementById("conn");
 const mainCountEl = document.getElementById("mainCount");
 const corridorCountEl = document.getElementById("corridorCount");
 const ambCountEl = document.getElementById("ambCount");
 
-let lastData = null;
-let hasRealConnection = false;
-
 const ctx = document.getElementById("vehiclesChart").getContext("2d");
+
 const vehiclesChart = new Chart(ctx, {
   type: "line",
   data: {
     labels: [],
     datasets: [
-      { label: "Road 1", data: [], borderColor:"#60a5fa", fill:false, tension:0.3 },
-      { label: "Road 2", data: [], borderColor:"#34d399", fill:false, tension:0.3 },
-      { label: "Road 3", data: [], borderColor:"#f97316", fill:false, tension:0.3 }
+      { label: "Total Cars", data: [], borderColor:"#60a5fa", tension:0.3 },
+      { label: "Estimated Side Cars", data: [], borderColor:"#34d399", tension:0.3 },
+      { label: "Ambulance", data: [], borderColor:"#f97316", tension:0.3 }
     ]
   },
-  options: { 
-    responsive:true, 
-    plugins:{legend:{labels:{color:'#c7d2fe'}}}, 
-    scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}} 
+  options: {
+    responsive:true,
+    plugins:{legend:{labels:{color:'#c7d2fe'}}},
+    scales:{x:{ticks:{color:'#9aa7bf'}},y:{ticks:{color:'#9aa7bf'}}}
   }
 });
 
 function updateUI(data) {
-  const totalCars = data.road_1 + data.road_2 + data.road_3;
+  mainCountEl.textContent = data.cars;
+  corridorCountEl.textContent = data.ambulance ? "YES" : "NO";
 
-  // Card 1: total vehicles
-  mainCountEl.textContent = totalCars;
-
-  // Card 2: Emergency vehicle
-  corridorCountEl.textContent = data.emergency ? "YES" : "NO";
-
-  // Card 3: Congestion status
-  if (totalCars > 10) {
-    ambCountEl.textContent = "HIGHLY CONGESTED";
+  if (data.mode === "DYNAMIC" || data.mode === "AMBULANCE PRIORITY") {
+    ambCountEl.textContent = data.mode;
     ambCountEl.style.color = "#ef4444";
-  } else if (totalCars > 6) {
-    ambCountEl.textContent = "CONGESTED";
-    ambCountEl.style.color = "#f59e0b";
   } else {
-    ambCountEl.textContent = "NORMAL";
+    ambCountEl.textContent = "STATIC";
     ambCountEl.style.color = "#22c55e";
   }
 
-  // Update chart (per road)
   const t = new Date().toLocaleTimeString();
+
   vehiclesChart.data.labels.push(t);
-  vehiclesChart.data.datasets[0].data.push(data.road_1);
-  vehiclesChart.data.datasets[1].data.push(data.road_2);
-  vehiclesChart.data.datasets[2].data.push(data.road_3);
+  vehiclesChart.data.datasets[0].data.push(data.cars);
+  vehiclesChart.data.datasets[1].data.push(Math.max(0, data.cars - 2));
+  vehiclesChart.data.datasets[2].data.push(data.ambulance ? 1 : 0);
 
   if (vehiclesChart.data.labels.length > 30) {
     vehiclesChart.data.labels.shift();
-    vehiclesChart.data.datasets.forEach(ds => ds.data.shift());
+    vehiclesChart.data.datasets.forEach(d => d.data.shift());
   }
   vehiclesChart.update();
 }
 
 async function fetchFlaskData() {
   try {
-    const resp = await fetch(FLASK_URL, { cache: "no-store" });
-    const data = await resp.json();
+    const res = await fetch(FLASK_URL, { cache: "no-store" });
+    const data = await res.json();
 
-    if (data.road_1 === undefined || data.road_2 === undefined || data.road_3 === undefined || data.emergency === undefined) {
-      connEl.textContent = "DISCONNECTED";
-      connEl.style.color = "#f87171";
-      return;
+    if (data.cars === undefined  data.ambulance === undefined  data.mode === undefined) {
+      throw new Error("Invalid data");
     }
 
-    hasRealConnection = true;
     connEl.textContent = "CONNECTED";
     connEl.style.color = "#86efac";
-
     updateUI(data);
-    lastData = { ...data };
 
-  } catch {
+  } catch (e) {
     connEl.textContent = "DISCONNECTED";
     connEl.style.color = "#f87171";
   }
